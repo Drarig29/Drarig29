@@ -343,9 +343,20 @@ Languages:
                 name = repo.get("nameWithOwner")
                 if name in self._repos or name in self._exclude_repos:
                     continue
+                if not name.startswith("Drarig29"):
+                    print(f"\nSkipped repository: {name}")
+                    continue
+
+                repo_stargazer_count = repo.get("stargazers").get("totalCount", 0)
+                repo_fork_count = repo.get("forkCount", 0)
+
                 self._repos.add(name)
-                self._stargazers += repo.get("stargazers").get("totalCount", 0)
-                self._forks += repo.get("forkCount", 0)
+                self._stargazers += repo_stargazer_count
+                self._forks += repo_fork_count
+
+                print(
+                    f"\nDetected repository: {name} ({repo_stargazer_count} stars, {repo_fork_count} forks)"
+                )
 
                 for lang in repo.get("languages", {}).get("edges", []):
                     name = lang.get("node", {}).get("name", "Other")
@@ -361,6 +372,10 @@ Languages:
                             "occurrences": 1,
                             "color": lang.get("node", {}).get("color"),
                         }
+
+                    print(
+                        f"  - Detected language: {name} (size: {languages[name]['size']})"
+                    )
 
             if owned_repos.get("pageInfo", {}).get(
                 "hasNextPage", False
@@ -481,9 +496,12 @@ Languages:
         """
         if self._lines_changed is not None:
             return self._lines_changed
+
         additions = 0
         deletions = 0
         for repo in await self.repos:
+            print(f"Fetching contributions for {repo}")
+
             r = await self.queries.query_rest(f"/repos/{repo}/stats/contributors")
             for author_obj in r:
                 # Handle malformed response from the API by skipping this repo
